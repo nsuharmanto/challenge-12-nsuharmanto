@@ -33,8 +33,8 @@ function ToastMessage({ open, setOpen, title, description, variant = 'success' }
         open={open}
         onOpenChange={setOpen}
         className={`
-          absolute left-1/2 top-0 -translate-x-1/2 mt-2
-          z-50 min-w-[260px] max-w-xs rounded-lg shadow-lg px-5 py-4
+          absolute left-1/2 top-1 -translate-x-1/2 mt-2
+          z-[60] min-w-[260px] max-w-xs rounded-lg shadow-lg px-5 py-4
           ${variant === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}
         `}
         style={{ pointerEvents: 'auto' }}
@@ -736,7 +736,7 @@ export default function EditPost({ postId }: EditPostProps) {
             </Label.Root>
             <div className={`flex flex-wrap gap-2 border border-[#D1D5DB] rounded-[8px] px-4 py-3 ${errors.tags ? 'border-red-400' : ''}`}>
               {tags.map(tag => (
-                <span key={tag} className="border border-neutral-300 rounded-[8px] px-2 py-1 flex items-center gap-1 text-sm">
+                <span key={tag} className="border border-gray-300 rounded-[8px] px-2 py-1 flex items-center gap-1 text-sm">
                   {tag}
                   <button
                     type="button"
