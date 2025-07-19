@@ -3,6 +3,7 @@ export interface Author {
   name: string;
   email: string;
   avatarUrl?: string;
+  username: string;
 }
 
 export interface Commentator {

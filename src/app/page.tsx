@@ -6,7 +6,63 @@ import PostCard from '@/components/views/PostCard';
 import Image from 'next/image';
 import { recommendedPosts } from '@/dummyData/recommendedPosts';
 import { mostLikedPosts } from '@/dummyData/mostLikedPosts';
-import type { Post } from '@/interfaces/post.interface';
+import Loading from './loading';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
+import { stripHtml } from '@/helpers/stripHtml';
+
+function MostLikedPostCard({ post }: { post: Post }) {
+  return (
+    <div className="flex flex-col">
+      <h3 className="font-semibold text-gray-800 text-sm line-clamp-2 mb-2 leading-relaxed">
+        {stripHtml(post.title || '')}
+      </h3>
+      <p className="text-xs text-gray-500 line-clamp-2 mb-4 leading-relaxed">
+        {stripHtml(post.content || '')}
+      </p>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center text-gray-600">
+          <Image
+            src="/like-gray-icon.svg"
+            alt="Like"
+            width={16}
+            height={16}
+            className="mr-1"
+          />
+          <span className="text-sm">{post.likes ?? 0}</span>
+        </div>
+        <div className="flex items-center text-gray-600">
+          <Image
+            src="/Comment Icon.svg"
+            alt="Comment"
+            width={16}
+            height={16}
+            className="mr-1"
+          />
+          <span className="text-sm">{post.comments ?? 0}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type Author = {
+  id: number;
+  name: string;
+  avatarUrl?: string;
+  username: string;
+};
+
+type Post = {
+  id: number;
+  title: string;
+  imageUrl?: string;
+  tags?: string[];
+  author: Author;
+  createdAt?: string;
+  content?: string;
+  likes?: number;
+  comments?: number;
+};
 
 export default function HomePage() {
   const isBackendAvailable = process.env.NEXT_PUBLIC_BACKEND_AVAILABLE === 'true';
@@ -14,25 +70,40 @@ export default function HomePage() {
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [mostLiked, setMostLiked] = useState<Post[]>([]);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const initialQuery = searchParams.get('query') || '';
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 5;
   const [totalPages, setTotalPages] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setIsLoggedIn(!!localStorage.getItem('token'));
-    }
-  }, []);
+    useEffect(() => {
+    setSearchQuery(initialQuery);
+    setCurrentPage(1);
+  }, [initialQuery, pathname]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     setCurrentPage(1);
+    router.push(`/?query=${encodeURIComponent(query)}`);
   };
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsLoggedIn(!!localStorage.getItem('token'));
+      const handler = () => setIsLoggedIn(!!localStorage.getItem('token'));
+      window.addEventListener('storage', handler);
+      return () => window.removeEventListener('storage', handler);
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
       try {
         if (isBackendAvailable) {
           let url = '';
@@ -56,60 +127,110 @@ export default function HomePage() {
               ...post,
               author: {
                 ...post.author,
-                avatarUrl: post.author?.avatarUrl
-                  ? post.author.avatarUrl.startsWith('http')
-                    ? post.author.avatarUrl
-                    : post.author.avatarUrl.startsWith('/uploads')
-                      ? `https://blogger-wph-api-production.up.railway.app${post.author.avatarUrl}`
-                      : post.author.avatarUrl
-                  : '/default-avatar.png'
-              }
+                avatarUrl: 'avatarUrl' in post.author && typeof post.author.avatarUrl === 'string' && post.author.avatarUrl
+                  ? post.author.avatarUrl
+                  : '/default-avatar.png',
+                username: post.author.name.toLowerCase().replace(/\s+/g, '-'),
+              },
             }))
           );
+
           setMostLiked(
             mostLikedData.data.map((post: Post) => ({
               ...post,
               author: {
                 ...post.author,
-                avatarUrl: post.author?.avatarUrl
-                  ? post.author.avatarUrl.startsWith('http')
-                    ? post.author.avatarUrl
-                    : `https://blogger-wph-api-production.up.railway.app${post.author.avatarUrl}`
-                  : '/default-avatar.png'
-              }
+                avatarUrl: 'avatarUrl' in post.author && typeof post.author.avatarUrl === 'string' && post.author.avatarUrl
+                  ? post.author.avatarUrl
+                  : '/default-avatar.png',
+                username: post.author.name.toLowerCase().replace(/\s+/g, '-'),
+              },
             }))
           );
-
           if (recommendedData.total) {
             setTotalPages(Math.ceil(recommendedData.total / postsPerPage));
           } else {
             setTotalPages(1);
           }
         } else {
-          let filtered = recommendedPosts.data;
+          let transformed = recommendedPosts.data.map((post) => ({
+            ...post,
+            author: {
+              ...post.author,
+              avatarUrl: 'avatarUrl' in post.author && typeof post.author.avatarUrl === 'string' && post.author.avatarUrl
+                ? post.author.avatarUrl
+                : '/default-avatar.png',
+              username: post.author.name.toLowerCase().replace(/\s+/g, '-'),
+            },
+          }));
+
           if (searchQuery) {
-            filtered = filtered.filter(post =>
-              post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              post.content.toLowerCase().includes(searchQuery.toLowerCase())
+            transformed = transformed.filter(
+              (post) =>
+                post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (post.content ?? '').toLowerCase().includes(searchQuery.toLowerCase())
             );
           }
-          setPosts(filtered.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage));
-          setMostLiked(mostLikedPosts.data.slice(0, 10));
-          setTotalPages(Math.ceil(filtered.length / postsPerPage));
+
+          setPosts(
+            transformed.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage)
+          );
+
+          setMostLiked(
+            mostLikedPosts.data.map((post) => ({
+              ...post,
+              author: {
+                ...post.author,
+                avatarUrl: 'avatarUrl' in post.author && typeof post.author.avatarUrl === 'string' && post.author.avatarUrl
+                  ? post.author.avatarUrl
+                  : '/default-avatar.png',
+                username: post.author.name.toLowerCase().replace(/\s+/g, '-'),
+              },
+            }))
+          );
+          setTotalPages(Math.ceil(transformed.length / postsPerPage));
         }
       } catch (error) {
         console.error('Error fetching posts:', error);
-        let filtered = recommendedPosts.data;
+
+        let transformed = recommendedPosts.data.map((post) => ({
+          ...post,
+          author: {
+            ...post.author,
+            avatarUrl: 'avatarUrl' in post.author && typeof post.author.avatarUrl === 'string' && post.author.avatarUrl
+              ? post.author.avatarUrl
+              : '/default-avatar.png',
+            username: post.author.name.toLowerCase().replace(/\s+/g, '-'),
+          },
+        }));
+
         if (searchQuery) {
-          filtered = filtered.filter(post =>
-            post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            post.content.toLowerCase().includes(searchQuery.toLowerCase())
+          transformed = transformed.filter(
+            (post) =>
+              post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (post.content ?? '').toLowerCase().includes(searchQuery.toLowerCase())
           );
         }
-        setPosts(filtered.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage));
-        setMostLiked(mostLikedPosts.data.slice(0, 10));
-        setTotalPages(Math.ceil(filtered.length / postsPerPage));
+
+        setPosts(
+          transformed.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage)
+        );
+
+        setMostLiked(
+          mostLikedPosts.data.map((post) => ({
+            ...post,
+            author: {
+              ...post.author,
+              avatarUrl: 'avatarUrl' in post.author && typeof post.author.avatarUrl === 'string' && post.author.avatarUrl
+                ? post.author.avatarUrl
+                : '/default-avatar.png',
+              username: post.author.name.toLowerCase().replace(/\s+/g, '-'),
+            },
+          }))
+        );
+        setTotalPages(Math.ceil(transformed.length / postsPerPage));
       }
+      setLoading(false);
     };
 
     fetchData();
@@ -208,10 +329,26 @@ export default function HomePage() {
     return pages;
   };
 
+  if (loading) {
+    return <Loading />;
+  }
+
   return (
     <main className="pt-32 bg-white min-h-screen">
-      <Header onSearch={handleSearch} /> 
+      <Header searchQuery={searchQuery} onSearch={handleSearch} />
       <div className="w-full px-6 md:px-20 py-0" style={{ position: 'relative' }}>
+        {!isLoggedIn && (
+          <div
+            className="fixed z-40 left-0 right-0 bottom-0"
+            style={{
+              top: '80px',
+              pointerEvents: 'auto',
+              background: 'transparent'
+            }}
+            aria-hidden="true"
+          />
+        )}
+
         <div className="flex flex-col lg:flex-row gap-12">
           <section className="w-full max-w-[807px] ml-10">
             <h2 className="text-2xl font-bold mb-9 text-gray-900">Recommend For You</h2>
@@ -227,6 +364,7 @@ export default function HomePage() {
                         horizontal
                         {...(!isLoggedIn && { disableLink: true })}
                       />
+                      
                       {index < posts.length - 1 && (
                         <hr className="border-t border-gray-200 my-6" />
                       )}
@@ -235,7 +373,7 @@ export default function HomePage() {
                 )}
                 {posts.length > 0 && <hr className="border-t border-gray-200 my-6" />}
               </div>
-              {/* Overlay hanya untuk konten utama, tidak menutupi pagination */}
+
               {!isLoggedIn && (
                 <div
                   className="absolute inset-0 z-40 bg-transparent"
@@ -243,14 +381,16 @@ export default function HomePage() {
                 />
               )}
             </div>
-            {/* Pagination: tampilkan hanya jika totalPages > 1 */}
+
             {totalPages > 1 && (
-              <div className="flex justify-center mb-39 items-center gap-1 select-none">
+              <div className="flex justify-center mb-39 items-center gap-1 select-none relative z-50">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className={`group flex items-center px-2 py-1 text-sm text-gray-600 hover:text-blue-500 transition ${
-                    currentPage === 1 ? 'opacity-50 cursor-default' : 'cursor-pointer'
+                  className={`group flex items-center px-2 py-1 text-sm text-gray-600 transition ${
+                    currentPage === 1
+                      ? 'opacity-50 cursor-default'
+                      : 'cursor-pointer hover:text-blue-500'
                   }`}
                   style={{ background: 'none', border: 'none' }}
                 >
@@ -266,19 +406,25 @@ export default function HomePage() {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="group-hover:stroke-blue-500"
+                      className={
+                        currentPage === 1
+                          ? ''
+                          : 'group-hover:stroke-blue-500'
+                      }
                     />
                   </svg>
                   Previous
                 </button>
-                
+
                 {renderPagination()}
-                
+
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className={`group flex items-center px-2 py-1 text-sm text-gray-600 hover:text-blue-500 transition ${
-                    currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  className={`group flex items-center px-2 py-1 text-sm text-gray-600 transition ${
+                    currentPage === totalPages
+                      ? 'opacity-50 cursor-default'
+                      : 'cursor-pointer hover:text-blue-500'
                   }`}
                   style={{ background: 'none', border: 'none' }}
                 >
@@ -295,7 +441,11 @@ export default function HomePage() {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="group-hover:stroke-blue-500"
+                      className={
+                        currentPage === totalPages
+                          ? ''
+                          : 'group-hover:stroke-blue-500'
+                      }
                     />
                   </svg>
                 </button>
@@ -303,7 +453,7 @@ export default function HomePage() {
             )}
           </section>
 
-          <div className="hidden lg:block border-l border-gray-200 h-[1673px]"></div>
+          <div className="hidden lg:block border-l border-gray-200 h-[1800px]"></div>
 
           <aside className="w-full lg:w-80 shrink-0 hidden lg:block">
             <div className="bg-white">
@@ -311,32 +461,7 @@ export default function HomePage() {
               <div className="flex flex-col gap-0">
                 {mostLiked?.map((post: Post, index) => (
                   <div key={post.id} className="flex flex-col">
-                    <div className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2 mb-2">
-                      {post.title}
-                    </div>
-                    <div className="text-xs text-gray-500 line-clamp-2 mb-4">{post.content}</div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center text-gray-600">
-                        <Image
-                          src="/like-gray-icon.svg"
-                          alt="Like"
-                          width={16}
-                          height={16}
-                          className="mr-1"
-                        />
-                        <span className="text-sm">{post.likes ?? 0}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <Image
-                          src="/Comment Icon.svg"
-                          alt="Comment"
-                          width={16}
-                          height={16}
-                          className="mr-1"
-                        />
-                        <span className="text-sm">{post.comments ?? 0}</span>
-                      </div>
-                    </div>
+                    <MostLikedPostCard post={post} />
                     {index < mostLiked.length - 1 && (
                       <hr className="border-t border-gray-200 my-5" />
                     )}

@@ -3,13 +3,12 @@ import PostDetail from '@/components/views/PostDetail';
 import { notFound } from 'next/navigation';
 
 type PostDetailProps = {
-  params: Promise<{ id: string }>; // Ubah menjadi Promise
+  params: Promise<{ id: string }>;
 };
 
 export default async function PostDetailPage({ params }: PostDetailProps) {
-  const resolvedParams = await params; // Await params
-  const post = await getPostById(resolvedParams.id); // Gunakan resolvedParams.id
-
+  const resolvedParams = await params;
+  const post = await getPostById(resolvedParams.id);
   if (!post) {
     notFound();
   }

@@ -8,7 +8,7 @@ export default function Login() {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({ email: '', password: '' });
   const [touched, setTouched] = useState({ email: false, password: false });
-  const [showPassword, setShowPassword] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -42,6 +42,9 @@ export default function Login() {
 
     const validationErrors = validate(formData);
     setErrors(validationErrors);
+
+    setTouched({ email: true, password: true });
+
     if (validationErrors.email || validationErrors.password) {
       setIsLoading(false);
       return;
@@ -102,33 +105,35 @@ export default function Login() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div
-        className="relative bg-white rounded-xl shadow-md px-8 pt-10 pb-8 flex flex-col items-center"
+        className="relative bg-white rounded-xl shadow-md px-6 pt-6 pb-6 flex flex-col items-center"
         style={{
           width: 360,
           minHeight: 454,
           maxWidth: '95vw',
         }}
       >
-        <button
-          aria-label="Close and go to homepage"
-          onClick={() => router.push('/')}
-          className="absolute top-4 right-4 z-10 p-1.5 rounded-lg bg-white hover:bg-neutral-200 transition-colors cursor-pointer flex items-center justify-center"
-          style={{ lineHeight: 1 }}
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 20 20"
-            fill="none"
-            className="w-5 h-5"
-            xmlns="http://www.w3.org/2000/svg"
+        
+        <div className="flex items-center justify-between w-full mb-8">
+          <h1 className="text-2xl font-bold text-left">Sign In</h1>
+          <button
+            aria-label="Close and go to homepage"
+            onClick={() => router.push('/')}
+            className="z-10 p-1.5 rounded-lg bg-white hover:bg-neutral-200 transition-colors cursor-pointer flex items-center justify-center"
+            style={{ lineHeight: 1 }}
           >
-            <path d="M6 6L14 14M14 6L6 14" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        <h1 className="text-2xl font-bold mb-8 text-left w-full">Sign In</h1>
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 20 20"
+              fill="none"
+              className="w-7 h-7"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path d="M6 6L14 14M14 6L6 14" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+        </div>
         <form onSubmit={handleSubmit} noValidate className="w-full flex flex-col items-center">
-          
           <div className="mb-4 flex flex-col items-center w-full" style={{ minHeight: 108 }}>
             <label htmlFor="email" className="block text-sm font-semibold mb-1 w-full">
               Email
@@ -149,7 +154,6 @@ export default function Login() {
               <p className="text-xs text-red-500 mt-1 w-full">{errors.email}</p>
             )}
           </div>
-         
           <div className="mb-6 relative flex flex-col items-center w-full" style={{ minHeight: 108 }}>
             <label htmlFor="password" className="block text-sm font-semibold mb-1 w-full">
               Password

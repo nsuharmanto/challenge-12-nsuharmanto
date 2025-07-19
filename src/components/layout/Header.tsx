@@ -4,8 +4,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { getAvatarUrl } from '@/helpers/avatar';
 
 type Props = {
+  searchQuery: string;
   onSearch?: (query: string) => void;
 };
 
@@ -17,11 +19,11 @@ type User = {
   headline?: string;
 };
 
-const Header = ({ onSearch }: Props) => {
-  const [searchQuery, setSearchQuery] = useState('');
+const Header = ({ searchQuery, onSearch }: Props) => {
   const [user, setUser] = useState<User | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [inputValue, setInputValue] = useState(searchQuery);
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -49,34 +51,36 @@ const Header = ({ onSearch }: Props) => {
     if (dropdownOpen) document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [dropdownOpen]);
-
+  
+  useEffect(() => {
+    setInputValue(searchQuery);
+  }, [searchQuery]);
+  
+  const handleLogoClick = () => {
+    setInputValue('');
+    if (onSearch) onSearch('');
+  };
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-
-    if (query.trim() === '' && onSearch) {
-      onSearch('');
+  const value = e.target.value;
+  setInputValue(value);
+    if (value === '' && onSearch) {
+    onSearch('');
     }
   };
-
+  
   const handleSearch = (e?: React.FormEvent | React.MouseEvent) => {
     if (e) e.preventDefault();
-    if (user) {
-      if (searchQuery.trim() !== '') {
-        router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
-      }
-    } else if (onSearch) {
-      onSearch(searchQuery);
-    }
+    if (onSearch) onSearch(inputValue);
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.reload();
     setUser(null);
     setDropdownOpen(false);
-    router.push('/');
+    window.dispatchEvent(new Event('storage'));
+    window.location.href = '/';
   };
 
   const handleProfile = () => {
@@ -87,12 +91,18 @@ const Header = ({ onSearch }: Props) => {
   if (!isMounted) return null;
 
   return (
-    <header className="w-full h-[80px] fixed top-0 left-0 z-50 flex items-center justify-between px-4 md:px-6 lg:px-32 py-4 border-b border-gray-200 bg-white">
+    <header className="w-full h-[80px] fixed top-0 left-0 z-50 flex items-center justify-between px-4 md:px-6 lg:px-30 py-4 border-b border-gray-200 bg-white">
       
-      <div className="flex items-center gap-3">
-        <Image src="/logo-symbol.svg" alt="Logo" width={32} height={32} className="h-8 w-auto" />
-        <span className="font-bold text-lg md:text-xl text-gray-900">Your Logo</span>
-      </div>
+      <Link
+        href="/"
+        aria-label="Go to homepage"
+        onClick={handleLogoClick}
+      >
+        <div className="flex items-center gap-3 cursor-pointer">
+          <Image src="/logo-symbol.svg" alt="Logo" width={32} height={32} className="h-8 w-auto" />
+          <span className="font-bold text-lg md:text-xl text-gray-900">Your Logo</span>
+        </div>
+      </Link>
 
       <div className="flex justify-center flex-1 max-w-[373px]">
         <form onSubmit={handleSearch} className="relative w-full h-[48px]">
@@ -120,7 +130,7 @@ const Header = ({ onSearch }: Props) => {
           </button>
           <input
             type="text"
-            value={searchQuery}
+            value={inputValue}
             onChange={handleInputChange}
             placeholder="Search"
             className="w-full h-full pl-12 pr-4 rounded-[12px] border border-neutral-300 bg-white text-sm md:text-base text-neutral-950 outline-none"
@@ -132,7 +142,7 @@ const Header = ({ onSearch }: Props) => {
         {user ? (
           <>
             <Link
-              href="/write"
+              href="/write-post"
               className="flex items-center gap-2 group text-[#0097E6] font-semibold text-base px-0"
               style={{ minWidth: 0 }}
             >
@@ -156,13 +166,12 @@ const Header = ({ onSearch }: Props) => {
                 style={{ cursor: 'pointer' }}
               >
                 <Image
-                  src={user.avatar && user.avatar.startsWith('/')
-                    ? `https://blogger-wph-api-production.up.railway.app${user.avatar}`
-                    : user.avatar || '/default-avatar.png'}
+                  src={getAvatarUrl(user.avatarUrl || user.avatar)}
                   alt={user.name || 'User Avatar'}
                   width={40}
                   height={40}
                   className="rounded-full object-cover h-10 w-10"
+                  onError={(e) => { e.currentTarget.src = '/default-avatar.png'; }}
                 />
                 <span className="font-medium text-neutral-950">{user.name}</span>
               </button>

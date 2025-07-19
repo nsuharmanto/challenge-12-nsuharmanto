@@ -43,18 +43,72 @@ body {
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear,
 input[type="password"]::-webkit-credentials-auto-fill-button,
-input[type="password"]::-webkit-input-decoration,
-input[type="password"]::-webkit-input-placeholder {
+input[type="password"]::-webkit-input-decoration {
   display: none !important;
-  pointer-events: none;
-  opacity: 0;
 }
 
-.scrollbar-hide {
-  scrollbar-width: none;
+input[type="password"]::placeholder {
+  color: #a4a7ae;
+  opacity: 1;
+  font-style: normal;
+}
+
+.scrollbar-hide-vertical {
+  overflow-y: scroll;
+  scrollbar-width: none; 
   -ms-overflow-style: none; 
 }
-
-.scrollbar-hide::-webkit-scrollbar {
+.scrollbar-hide-vertical::-webkit-scrollbar:vertical {
   display: none; 
+}
+
+.double-strike {
+  position: relative;
+  
+}
+.double-strike::before,
+.double-strike::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: currentColor;
+  pointer-events: none;
+}
+.double-strike::before {
+  top: 45%; 
+}
+.double-strike::after {
+  top: 60%;
+}
+
+.ProseMirror,
+.prose,
+.profile-content,
+.profile-title,
+.profile-subtitle {
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+}
+
+.profile-content img,
+.profile-content table,
+.profile-content pre {
+  max-width: 100%;
+  height: auto;
+  box-sizing: border-box;
+  overflow-x: auto;
+}
+
+.profile-title,
+.profile-subtitle {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2; 
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  word-break: break-word;
 }

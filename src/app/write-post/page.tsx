@@ -1,4 +1,5 @@
-// filepath: src/components/views/WritePost.tsx
-export default function WritePost() {
-  return <div>WritePost</div>;
+import WritePost from '@/components/views/WritePost';
+
+export default function WritePostPage() {
+  return <WritePost />;
 }

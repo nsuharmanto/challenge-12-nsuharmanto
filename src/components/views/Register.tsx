@@ -25,8 +25,9 @@ export default function Register() {
   });
   const [success, setSuccess] = useState('');
   const [apiError, setApiError] = useState('');
-  const [showPassword, setShowPassword] = useState(true);
-  const [showConfirm, setShowConfirm] = useState(true);
+  // Mata tertutup default (password hidden)
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const router = useRouter();
 
@@ -153,7 +154,7 @@ export default function Register() {
               <p className="text-xs text-red-500 mt-1 w-full">{errors.fullName}</p>
             )}
           </div>
-          {/* Email */}
+          
           <div className="mb-4 flex flex-col items-center">
             <label htmlFor="email" className="block text-sm font-semibold mb-1 w-full">
               Email
@@ -176,7 +177,7 @@ export default function Register() {
               <p className="text-xs text-red-500 mt-1 w-full">{errors.email}</p>
             )}
           </div>
-          {/* Password */}
+          
           <div className="mb-4 relative flex flex-col items-center">
             <label htmlFor="password" className="block text-sm font-semibold mb-1 w-full">
               Password
@@ -220,7 +221,7 @@ export default function Register() {
               <p className="text-xs text-red-500 mt-1 w-full">{errors.password}</p>
             )}
           </div>
-          {/* Confirm Password */}
+          
           <div className="mb-6 relative flex flex-col items-center">
             <label htmlFor="confirmPassword" className="block text-sm font-semibold mb-1 w-full">
               Confirm Password

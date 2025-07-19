@@ -1,43 +1,70 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
+import { getAvatarUrl } from '@/helpers/avatar';
+import { stripHtml } from '@/helpers/stripHtml';
+import { forceWrapLongWords } from '@/helpers/forceWrap';
+import TagList from '@/components/ui/TagList';
+
+type Author = {
+  id: number;
+  name: string;
+  avatarUrl?: string;
+  username: string;
+};
+
+type PostType = {
+  id: number;
+  title: string;
+  imageUrl?: string;
+  tags?: string[];
+  author?: Author;
+  createdAt?: string;
+  content?: string;
+  likes?: number;
+  comments?: number;
+};
 
 type Props = {
-  post: {
-    id: number;
-    title: string;
-    imageUrl?: string;
-    tags?: string[];
-    author?: { name: string; avatarUrl?: string };
-    createdAt?: string;
-    content?: string;
-    likes?: number;
-    comments?: number;
-  };
+  post: PostType;
   horizontal?: boolean;
-  disableLink?: boolean;
+  disableLink?: boolean; 
 };
 
-// Helper untuk handle avatar url relatif/backend
-const getAvatarUrl = (avatarUrl?: string) => {
-  if (!avatarUrl) return '/default-avatar.png';
-  if (avatarUrl.startsWith('http')) return avatarUrl;
-  if (avatarUrl.startsWith('/uploads')) {
-    return `https://blogger-wph-api-production.up.railway.app${avatarUrl}`;
-  }
-  // fallback ke lokal
-  return avatarUrl;
-};
+function HydrationSafeDate({ date }: { date?: string }) {
+  const [dateStr, setDateStr] = useState('');
+  useEffect(() => {
+    if (date) {
+      setDateStr(
+        new Date(date).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        })
+      );
+    }
+  }, [date]);
+  return <>{dateStr}</>;
+}
 
 export default function PostCard({ post, horizontal, disableLink }: Props) {
-  const cardContent = (
+  return (
     <div
       className={`bg-white overflow-hidden w-full max-w-[807px] h-auto lg:h-[276px] ${
         horizontal ? 'flex flex-row' : 'flex flex-col'
       }`}
     >
-      {/* Image Section */}
+      
       {post.imageUrl && (
-        <div className={`relative ${horizontal ? 'w-[340px] h-[258px] mt-1 mb-1 lg:mt-2 lg:mb-2 flex-shrink-0' : 'w-full h-[200px]'}`}>
+        <div
+          className={`relative ${
+            horizontal
+              ? 'w-[340px] h-[258px] mt-1 mb-1 lg:mt-2 lg:mb-2 flex-shrink-0'
+              : 'w-full h-[200px]'
+          }`}
+        >
           <Image
             src={post.imageUrl}
             alt={post.title}
@@ -49,48 +76,68 @@ export default function PostCard({ post, horizontal, disableLink }: Props) {
         </div>
       )}
 
-      {/* Content Section */}
+      
       <div className="flex flex-col justify-between ml-4 lg:ml-6 flex-1">
         <div>
-          <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-2">{post.title}</h3>
-          <div className="flex gap-2 mb-4 overflow-hidden whitespace-nowrap">
-            {post.tags?.slice(0, 3).map((tag, idx) => (
-              <span
-                key={`tag-${post.id}-${idx}`}
-                className="px-3 py-1 text-xs lg:text-sm bg-white border border-gray-200 text-gray-600 rounded-[8px]">
-                {tag}
-              </span>
-            ))}
-            {post.tags && post.tags.length > 3 && (
-              <span className="px-1 py-1 text-sm lg:text-md">
-                ...
-              </span>
-            )}
-          </div>
-          <p className="text-sm lg:text-base text-gray-700 line-clamp-2">{post.content}</p>
+          
+          {disableLink ? (
+            <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-2 line-clamp-2 leading-relaxed">
+              {forceWrapLongWords(stripHtml(post.title || ''))}
+            </h3>
+          ) : (
+            <Link href={`/post/${post.id}`}>
+              <h3 className="text-lg lg:text-xl font-semibold text-gray-900 mb-2 line-clamp-2 transition-colors hover:text-blue-600">
+                {forceWrapLongWords(stripHtml(post.title || ''))}
+              </h3>
+            </Link>
+          )}
+          
+          <TagList tags={post.tags} maxTags={3} />
+          <p className="text-sm text-gray-700 mb-4 line-clamp-2 leading-relaxed">
+            {forceWrapLongWords(stripHtml(post.content || ''))}
+          </p>
         </div>
-        <div className="flex items-center mt-4">
-          <Image
-            src={getAvatarUrl(post.author?.avatarUrl)}
-            alt={post.author?.name || 'Author'}
-            width={40}
-            height={40}
-            className="rounded-full"
-          />
-          <div className="ml-3">
-            <p className="text-sm text-gray-900 font-medium">{post.author?.name}</p>
-            {post.createdAt && (
-              <p className="text-xs text-gray-500">
-                {new Date(post.createdAt).toLocaleDateString('en-GB', {
-                  day: '2-digit',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </p>
-            )}
-          </div>
+
+        <div className="flex items-center gap-2 text-sm">
+          {disableLink ? (
+            <div className="flex items-center gap-2">
+              <Image
+                src={getAvatarUrl(post.author?.avatarUrl) || '/default-avatar.png'}
+                alt={post.author?.name || 'Author'}
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
+              <span className="font-medium text-gray-900">{post.author?.name}</span>
+              <span className="text-gray-400">•</span>
+              {post.createdAt && (
+                <span className="text-gray-600">
+                  <HydrationSafeDate date={post.createdAt} />
+                </span>
+              )}
+            </div>
+          ) : (
+            <Link href={`/profile/${post.author?.id}`} className="flex items-center gap-2">
+              <Image
+                src={getAvatarUrl(post.author?.avatarUrl) || '/default-avatar.png'}
+                alt={post.author?.name || 'Author'}
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
+              <span className="font-medium transition-colors hover:text-blue-600">
+                {post.author?.name}
+              </span>
+              <span className="text-gray-400 transition-colors hover:text-blue-600 ">•</span>
+              {post.createdAt && (
+                <span className="text-gray-600 transition-colors hover:text-blue-600">
+                  <HydrationSafeDate date={post.createdAt} />
+                </span>
+              )}
+            </Link>
+          )}
         </div>
-        {/* Like and Comment Section */}
+
         <div className="flex items-center mt-4 gap-4">
           <div className="flex items-center text-gray-600">
             <Image
@@ -115,11 +162,5 @@ export default function PostCard({ post, horizontal, disableLink }: Props) {
         </div>
       </div>
     </div>
-  );
-
-  return disableLink ? cardContent : (
-    <Link href={`/post/${post.id}`} className="block">
-      {cardContent}
-    </Link>
   );
 }

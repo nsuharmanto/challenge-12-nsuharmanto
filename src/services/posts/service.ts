@@ -31,7 +31,7 @@ export const getMostLikedPosts = async (): Promise<PostListResponse> => {
 export const getPostById = async (id: string): Promise<Post | null> => {
   try {
     const response = await axios.get(
-      `https://blogger-wph-api-production.up.railway.app/posts/${id}`, { timeout: 5000 }
+      `https://blogger-wph-api-production.up.railway.app/posts/${id}`, { timeout: 15000 }
     );
     return {
       ...response.data,
